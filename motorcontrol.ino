@@ -20,12 +20,19 @@ const int AIN1 = 6, AIN2 = 4, PWMA = 5;
 const int BIN1 = 7, BIN2 = 8, PWMB = 9;
 
 // PID gains
-const float Kp = 4.5;
+const float Kp = 3.0;
 const float Ki = 0.0;
 const float Kd = 1.2;
 
 // Target distance to left wall [mm]
 const int targetDist = 250;
+int prev_dist;
+bool left_corner_mode = false;
+bool right_corner_mode = false;
+int reacquire_threshold = 300;
+int dist1, dist2;
+const float alph = 0.3;          // smoothing factor (0<α<1)
+float filtDist1= targetDist;
 
 // PID state
 float prevError = 0;
@@ -71,7 +78,7 @@ void readDualSensors(int &d1, int &d2) {
   d2 = (measure2.RangeStatus != 4) ? measure2.RangeMilliMeter : -1;
 }
 
-void driveMotors(int speedR, int speedL) {
+void driveforward(int speedR, int speedL) {
   // Right motor
   digitalWrite(AIN1, HIGH);
   digitalWrite(AIN2, LOW);
@@ -79,6 +86,19 @@ void driveMotors(int speedR, int speedL) {
   // Left motor
   digitalWrite(BIN1, HIGH);
   digitalWrite(BIN2, LOW);
+  analogWrite(PWMB, constrain(speedL, 0, 255));
+}
+
+void sharpleftturn(){
+  int speedR = 150;
+  int speedL = 50;
+  // Right motor
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+  analogWrite(PWMA, constrain(speedR, 0, 255));
+  // Left motor
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
   analogWrite(PWMB, constrain(speedL, 0, 255));
 }
 
@@ -100,7 +120,7 @@ void leftWallFollow(int error) {
   Serial.print(constrain(speedL, 0, 255));
   Serial.println("------------");
  
-  driveMotors(speedR, speedL);
+  driveforward(speedR, speedL);
 }
 
 void setup() {
@@ -121,33 +141,51 @@ void setup() {
   setSensorIDs();
   prevTime = millis();
 }
-int prev_dist;
 
 void loop() {
   static unsigned long lastSample = 0;
   unsigned long now = millis();
-  if (now - lastSample >= samplingInterval) {
-    lastSample = now;
 
-    int dist1, dist2;
-    readDualSensors(dist1, dist2);
-//    if (dist1 < prev_dist-70){
-//        digitalWrite(AIN1, LOW);
-//        digitalWrite(AIN2, HIGH);
-//        analogWrite(PWMA, 255);
-//        // Left motor
-//        digitalWrite(BIN1, HIGH);
-//        digitalWrite(BIN2, LOW);
-//        analogWrite(PWMB, 255);
-//        delay(900);
-//      }
-//    
-   
-    if (dist1 > 0) {
-      prev_dist = dist1;
-      int err = targetDist - dist1;
-      leftWallFollow(err);
-     
+  // only run at sampling rate
+  if (now - lastSample < samplingInterval) return;
+  lastSample = now;
+  // place these up near your globals
+    // initialize to your setpoint
+
+  // in loop, right after readDualSensors(dist1, dist2):
+
+  // read both sensors
+  readDualSensors(dist1, dist2);
+  if (dist1 > 0) {
+    filtDist1 = alph*dist1 + (1-alph)*filtDist1;
+  }
+  int useDist1 = round(filtDist1);
+  //Serial.println(left_corner_mode);
+  // skip if no valid reading
+  if (useDist1 <= 0) return;
+
+  // left‐wall corner detection logic
+  if (!left_corner_mode) {
+    // entered corner when distance jumps above threshold
+    if (useDist1 > prev_dist + reacquire_threshold) {
+      left_corner_mode = true;
     }
+    else {
+      // normal wall follow
+      prev_dist = useDist1;
+      leftWallFollow(targetDist - useDist1);
+    }
+  }
+  else {
+    // corner mode: spin left sharply
+    sharpleftturn();
+
+    // exit corner when we get back under threshold
+    if (dist1 < reacquire_threshold) {
+      left_corner_mode = false;
+    }
+
+    // keep prev_dist up to date so we don’t re‐enter immediately
+    prev_dist = useDist1;
   }
 }
