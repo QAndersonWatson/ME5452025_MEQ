@@ -23,7 +23,7 @@ uint8_t StateMachine::getPrevInput(){
 /*
   run() - Calculate next state
 */
-StateMachine::State StateMachine::run(int xcoord, int laserLeft, int lasterRight, unsigned long time){
+StateMachine::State StateMachine::run(int xcoord, int laserLeft, int lasterRight){
   _input = _calcInput(int xcoord, int laserLeft, int lasterRight, unsigned long time);
   _state = _calcState(_input, _state);
   return _state;
@@ -32,7 +32,7 @@ StateMachine::State StateMachine::run(int xcoord, int laserLeft, int lasterRight
 /*
   Compress sensor data into binary
 */
-uint8_t StateMachine::_calcInput(int xcoord, int laserLeft, int lasterRight, unsigned long time){
+uint8_t StateMachine::_calcInput(int xcoord, int laserLeft, int lasterRight){
   // Tune these parameters as needed
   int laserInfinity = 55; // farthest distance we can expect inside maze
   unsigned long timeLimit = 180000; // maximum time allowed for putzing around the maze

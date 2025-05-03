@@ -22,13 +22,13 @@ class StateMachine
     stateMachine();
     States getState();
     uint8_t getPrevInput();
-    States run(int xcoord, int laserLeft, int lasterRight, unsigned long time);
+    States run(int xcoord, int laserLeft, int lasterRight);
 
     private:
     States _state;
     uint8_t _input;
 
-    uint8_t _calcInput(int xcoord, int laserLeft, int lasterRight, unsigned long time);
+    uint8_t _calcInput(int xcoord, int laserLeft, int lasterRight);
     States _calcState(uint8_t in, States past);
 
 
