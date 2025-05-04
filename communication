@@ -1,0 +1,78 @@
+import numpy as np
+import cv2
+import serial
+import time
+
+# Initiate video capture 
+cap = cv2.VideoCapture(0)
+
+# Initiate serial communication with Arduino 
+ser = serial.Serial('/dev/ttyACM0', 115200)
+
+# Define range of tennis ball color in HSV 
+# Original: 35-65 H, 50-255 S, 160-255 V
+lower_tennis = np.array([35, 70, 160])
+upper_tennis = np.array([65, 230, 255])
+
+# Send an initial byte to Arduino to activate all behavior 
+ser.write(chr(255).encode())  # Send ASCII code "ÿ" to Arduino
+
+while True:
+    grabbed, frame = cap.read()
+    if not grabbed:
+        break
+    
+    # Display the resulting frame
+    #cv2.imshow('frame', frame)
+    
+    # Convert BGR to HSV 
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    # Threshold the HSV image to get only tennis color 
+    Threshold_hsv = cv2.inRange(hsv, lower_tennis, upper_tennis)
+    Threshold_hsv = cv2.dilate(Threshold_hsv, None, iterations=7)
+    Threshold_hsv = cv2.erode(Threshold_hsv, None, iterations=7)
+    
+    # Find contours in the mask and initialize the current (x, y) center of the ball 
+    contours, _ = cv2.findContours(Threshold_hsv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #cv2.drawContours(frame, contours, -1, (10, 255, 10), 3)
+    # Display the resulting frame
+    #cv2.imshow('Thresholded Mask', Threshold_hsv)
+    #cv2.imshow('Detected Ball', frame)
+    
+    # Only proceed if at least one contour was found 
+    if contours:
+        # Find the largest contour in the mask
+        largest_contour = max(contours, key = cv2.contourArea)
+        (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+        center = (int(x), int(y))
+            
+        #cv2.circle(frame, (x,y), radius=radius, color=(10,10,255))
+        #cv2.imshow('Detected Ball', frame)
+        # Only proceed if the radius meets a minimum size
+        # find the largest contour in the mask, then use it to compute the minimum enclosing circle radius and centroid 
+        # only proceed if the radius meets a minimum size
+        if radius > 10:
+            cv2.circle(frame, center, int(radius), (0,255,0), 2)
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+            cv2.putText(frame, f"({center[0]}, {center[1]})", (center[0]+10, center[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            cv2.imshow("Tennis ball tracker", frame)
+            x_dist = str(int(x))
+            y_dist = str(int(y))
+            message = x_dist + "\n"
+        else:
+            noball = str(-1)
+            message = noball + "\n"
+        # Write one byte between 0-255 to Arduino showing the horizontal position of the tennis ball
+        ser.write(message.encode())
+        ser.reset_output_buffer()  # Clears the output buffer
+        ser.reset_input_buffer()   # Clears the input buffer
+
+    
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # Hit keyboard “q” to exit while loop
+        break 
+
+# When everything is done, release the capture 
+cap.release()
+cv2.destroyAllWindows()
+ser.close()
