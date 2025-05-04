@@ -165,7 +165,7 @@ const int camera_res = 680;
 const int camera_d  = int(camera_res/2);
 double cameraProp = 0.1;
 double cameraDeriv = 0.0;
-int[2] errors = [0,0];
+int errors[2] = {0,0};
 
 void setup() {
   // init Serial
@@ -211,16 +211,16 @@ void loop() {
         // read camera data
 
         // PD control
-        error[1] = camera_d - camera_x;
-        int turnIntensity = cameraProp*error[1] + cameraDeriv*(error[1] - error[0])/dt;
-        if(error[1] > 0){
+        errors[1] = camera_d - camera_x;
+        int turnIntensity = cameraProp*errors[1] + cameraDeriv*(errors[1] - errors[0])/dt;
+        if(errors[1] > 0){
           motor.turnRight(turnIntensity,255);
         }
-        else if(error[1] < 0){
+        else if(errors[1] < 0){
           motor.turnLeft(255, -1*turnIntensity);
         }
 
-        error[0] = error[1];
+        errors[0] = errors[1];
       }
       break;
     case State::UTURN:
@@ -233,7 +233,7 @@ void loop() {
       lastSample = now;
       motor.drive(255,255);
       delay(1000);
-      motor.drive()
+      motor.off();
       isExit = 1;
       break;
     default:

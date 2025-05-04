@@ -34,7 +34,7 @@ State StateMachine::run(int xcoord, int laserLeft, int lasterRight){
 */
 uint8_t StateMachine::_calcInput(int xcoord, int laserLeft, int laserRight){
   // Tune these parameters as needed
-  int laserInfinity = 55; // farthest distance we can expect inside maze
+  int laserInfinity = 2000; // farthest distance we can expect inside maze
   unsigned long timeLimit = 180000; // maximum time allowed for putzing around the maze
 
   uint8_t out = 0b00000000;
