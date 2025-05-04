@@ -126,25 +126,7 @@ void loop() {
   }
   // end TODO
 
-  // figure out how to assign the first and second distances as "wall follower" and "wall seeker"
-  switch(fsm.run(camera_x, dist1, dist2)){
-    case State::SEEK:
-      // Code SEEK routine here
-    case State::WALLFOLLOW:
-      // Code WALLFOLLOW routine here
-    case State::PICKUP:
-      // Code PICKUP routine here
-    case State::UTURN:
-      // Code UTURN routine here
-    case State::EXIT:
-      // Code EXIT routine here
-    default:
-      // Double check this: you can print something to serial monitor while reading Rasp-pi right?
-      Serial.println("FATAL ERROR");
-      Serial.println("State code: " + static_cast<int>(fsm.getState()));
-      Serial.println("Last input: " + static_cast<int>(fsm.getPrevInput()));
-      break;
-  }
+  
 }
 
 void setSensorIDs() {

@@ -1,5 +1,6 @@
 #include "Adafruit_VL53L0X.h"
 #include <Arduino.h>
+#include "src/StateMachine/StateMachine.h"
 
 // ==== CONFIG ====
 #define LOX1_ADDRESS 0x30
@@ -108,11 +109,18 @@ public:
 DualVL53L0X sensor;
 MotorDriver motor;
 WallFollower controller(motor);
+StateMachine fsm = StateMachine();
+
+int camera_x = -1;
+int camera_y = -1;
+int dist1 = 50;
+int dist2 = 50;
 
 void setup() {
+  // init Serial
   Serial.begin(115200);
-  while (!Serial);
-
+  while (!Serial); // Wait for Serial
+  // init robot
   motor.init();
   sensor.init();
   controller.resetTimer();
@@ -132,5 +140,30 @@ void loop() {
       int error = targetDist - dist1;
       controller.update(error);
     }
+  }
+
+  // figure out how to assign the first and second distances as "wall follower" and "wall seeker"
+  switch(fsm.run(camera_x, dist1, dist2)){
+    case State::SEEK:
+      // Code SEEK routine here
+      break;
+    case State::WALLFOLLOW:
+      // Code WALLFOLLOW routine here
+      break;
+    case State::PICKUP:
+      // Code PICKUP routine here
+      break;
+    case State::UTURN:
+      // Code UTURN routine here
+      break;
+    case State::EXIT:
+      // Code EXIT routine here
+      break;
+    default:
+      // Double check this: you can print something to serial monitor while reading Rasp-pi right?
+      Serial.println("FATAL ERROR");
+      Serial.println("State code: " + static_cast<int>(fsm.getState()));
+      Serial.println("Last input: " + static_cast<int>(fsm.getPrevInput()));
+      break;
   }
 }
