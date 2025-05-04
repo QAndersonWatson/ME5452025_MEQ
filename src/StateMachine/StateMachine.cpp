@@ -2,14 +2,14 @@
 #include "StateMachine.h"
 
 StateMachine::StateMachine(){
-  _state = StateMachine::States::SEEK;
+  _state = State::SEEK;
   _input = uint8_t(0);  
 }
 
 /*
   getState() - Retrieves current state
 */
-String StateMachine::getState(){
+State StateMachine::getState(){
   return _state;
 }
 
@@ -23,8 +23,8 @@ uint8_t StateMachine::getPrevInput(){
 /*
   run() - Calculate next state
 */
-StateMachine::State StateMachine::run(int xcoord, int laserLeft, int lasterRight){
-  _input = _calcInput(int xcoord, int laserLeft, int lasterRight, unsigned long time);
+State StateMachine::run(int xcoord, int laserLeft, int lasterRight){
+  _input = _calcInput(xcoord, laserLeft, lasterRight);
   _state = _calcState(_input, _state);
   return _state;
 }
@@ -32,7 +32,7 @@ StateMachine::State StateMachine::run(int xcoord, int laserLeft, int lasterRight
 /*
   Compress sensor data into binary
 */
-uint8_t StateMachine::_calcInput(int xcoord, int laserLeft, int lasterRight){
+uint8_t StateMachine::_calcInput(int xcoord, int laserLeft, int laserRight){
   // Tune these parameters as needed
   int laserInfinity = 55; // farthest distance we can expect inside maze
   unsigned long timeLimit = 180000; // maximum time allowed for putzing around the maze
@@ -46,27 +46,33 @@ uint8_t StateMachine::_calcInput(int xcoord, int laserLeft, int lasterRight){
 
   // Flip W1 and/or W0 if the laser distance is within "infinity"
   if(laserLeft < laserInfinity){
-    out |= 0b00000100
+    out |= 0b00000100;
   }
   if(laserRight < laserInfinity){
-    out |= 0b00000010
+    out |= 0b00000010;
   }
 
   // Flip TIME if out of time
   if(millis() >= timeLimit){
-    out |= 0b00000001
+    out |= 0b00000001;
   }
 
   return out;
 }
 
-StateMachine::States StateMachine::_calcState(uint8_t in, StateMachine::State past){
-  StateMachine::States out;
-  
+State StateMachine::_calcState(uint8_t in, State st){
+  uint8_t out;
+  uint8_t past = static_cast<int>(st);
+
   // Divide up past state into bits
-  bool Q2   = past & 4; bool Q1 = past & 2; bool Q0 = past & 1;
+  bool Q2 = past & 4; 
+  bool Q1 = past & 2; 
+  bool Q0 = past & 1;
   // Same with the input
-  bool CAM  = in & 8; bool W1 = in & 4; bool W0 = in & 2; bool TIME = in & 1;
+  bool CAM  = in & 8; 
+  bool W1   = in & 4; 
+  bool W0   = in & 2; 
+  bool TIME = in & 1;
 
   // Compute third output bit
   uint8_t out2 = Q2 << 2;
@@ -93,5 +99,5 @@ StateMachine::States StateMachine::_calcState(uint8_t in, StateMachine::State pa
   // just in case Arduino does something weird with them)
   out = (out2 | out1 | out0) & 15;
   
-  return out;  
+  return static_cast<State>(out);  
 }

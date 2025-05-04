@@ -1,5 +1,6 @@
 #include "Adafruit_VL53L0X.h"
 #include <Arduino.h>
+#include "src/StateMachine/StateMachine.h"
 
 // I2C addresses for the two VL53L0X
 #define LOX1_ADDRESS 0x30
@@ -42,6 +43,13 @@ unsigned long prevTime = 0;
 // Sampling rate
 const int samplingFreq = 20;               // Hz
 const unsigned long samplingInterval = 1000UL / samplingFreq;  // ms
+
+// Camera ball tracking data (coordinate of closest ball)
+int camera_x = -1;
+int camera_y = -1;
+
+// Strategy-organizing AI
+StateMachine fsm = StateMachine();
 
 void setSensorIDs() {
   // reset both sensors
@@ -143,6 +151,7 @@ void setup() {
 }
 
 void loop() {
+  // TODO: Move all of this stuff to the corresponding state later
   static unsigned long lastSample = 0;
   unsigned long now = millis();
 
@@ -187,5 +196,26 @@ void loop() {
 
     // keep prev_dist up to date so we don’t re‐enter immediately
     prev_dist = useDist1;
+  }
+  // end TODO
+
+  // figure out how to assign the first and second distances as "wall follower" and "wall seeker"
+  switch(fsm.run(camera_x, dist1, dist2)){
+    case State::SEEK:
+      // Code SEEK routine here
+    case State::WALLFOLLOW:
+      // Code WALLFOLLOW routine here
+    case State::PICKUP:
+      // Code PICKUP routine here
+    case State::UTURN:
+      // Code UTURN routine here
+    case State::EXIT:
+      // Code EXIT routine here
+    default:
+      // Double check this: you can print something to serial monitor while reading Rasp-pi right?
+      Serial.println("FATAL ERROR");
+      Serial.println("State code: " + static_cast<int>(fsm.getState()));
+      Serial.println("Last input: " + static_cast<int>(fsm.getPrevInput()));
+      break;
   }
 }
