@@ -51,85 +51,12 @@ int camera_y = -1;
 // Strategy-organizing AI
 StateMachine fsm = StateMachine();
 
-void setSensorIDs() {
-  // reset both sensors
-  digitalWrite(SHT_LOX1, LOW);
-  digitalWrite(SHT_LOX2, LOW);
-  delay(10);
-
-  // wake both
-  digitalWrite(SHT_LOX1, HIGH);
-  digitalWrite(SHT_LOX2, HIGH);
-  delay(10);
-
-  // init LOX1
-  digitalWrite(SHT_LOX2, LOW);  // keep #2 asleep
-  if (!lox1.begin(LOX1_ADDRESS)) {
-    Serial.println(F("Failed to boot LOX1"));
-    while (1);
-  }
-  delay(10);
-
-  // init LOX2
-  digitalWrite(SHT_LOX2, HIGH);
-  if (!lox2.begin(LOX2_ADDRESS)) {
-    Serial.println(F("Failed to boot LOX2"));
-    while (1);
-  }
-}
-
-void readDualSensors(int &d1, int &d2) {
-  lox1.rangingTest(&measure1, false);
-  lox2.rangingTest(&measure2, false);
-
-  d1 = (measure1.RangeStatus != 4) ? measure1.RangeMilliMeter : -1;
-  d2 = (measure2.RangeStatus != 4) ? measure2.RangeMilliMeter : -1;
-}
-
-void driveforward(int speedR, int speedL) {
-  // Right motor
-  digitalWrite(AIN1, HIGH);
-  digitalWrite(AIN2, LOW);
-  analogWrite(PWMA, constrain(speedR, 0, 255));
-  // Left motor
-  digitalWrite(BIN1, HIGH);
-  digitalWrite(BIN2, LOW);
-  analogWrite(PWMB, constrain(speedL, 0, 255));
-}
-
-void sharpleftturn(){
-  int speedR = 150;
-  int speedL = 50;
-  // Right motor
-  digitalWrite(AIN1, HIGH);
-  digitalWrite(AIN2, LOW);
-  analogWrite(PWMA, constrain(speedR, 0, 255));
-  // Left motor
-  digitalWrite(BIN1, LOW);
-  digitalWrite(BIN2, HIGH);
-  analogWrite(PWMB, constrain(speedL, 0, 255));
-}
-
-void leftWallFollow(int error) {
-  unsigned long now = millis();
-  float dt = (now - prevTime) / 1000.0;
-  prevTime = now;
-
-  integralTerm += error * dt;
-  float derivative = (error - prevError) / dt;
-  prevError = error;
-
-  float output = Kp * error + Ki * integralTerm + Kd * derivative;
-
-  int speedR = 150 + output;  // slow right wheel if too close
-  int speedL = 150 - output;  // speed up left wheel if too far
-  Serial.print(constrain(speedR, 0, 255));
-  Serial.print("  ");
-  Serial.print(constrain(speedL, 0, 255));
-  Serial.println("------------");
- 
-  driveforward(speedR, speedL);
-}
+// User defined functions
+void setSensorIDs();
+void readDualSensors(int &d1, int &d2);
+void driveforward(int speedR, int speedL);
+void sharpleftturn();
+void leftWallFollow(int error);
 
 void setup() {
   Serial.begin(115200);
@@ -218,4 +145,84 @@ void loop() {
       Serial.println("Last input: " + static_cast<int>(fsm.getPrevInput()));
       break;
   }
+}
+
+void setSensorIDs() {
+  // reset both sensors
+  digitalWrite(SHT_LOX1, LOW);
+  digitalWrite(SHT_LOX2, LOW);
+  delay(10);
+
+  // wake both
+  digitalWrite(SHT_LOX1, HIGH);
+  digitalWrite(SHT_LOX2, HIGH);
+  delay(10);
+
+  // init LOX1
+  digitalWrite(SHT_LOX2, LOW);  // keep #2 asleep
+  if (!lox1.begin(LOX1_ADDRESS)) {
+    Serial.println(F("Failed to boot LOX1"));
+    while (1);
+  }
+  delay(10);
+
+  // init LOX2
+  digitalWrite(SHT_LOX2, HIGH);
+  if (!lox2.begin(LOX2_ADDRESS)) {
+    Serial.println(F("Failed to boot LOX2"));
+    while (1);
+  }
+}
+
+void readDualSensors(int &d1, int &d2) {
+  lox1.rangingTest(&measure1, false);
+  lox2.rangingTest(&measure2, false);
+
+  d1 = (measure1.RangeStatus != 4) ? measure1.RangeMilliMeter : -1;
+  d2 = (measure2.RangeStatus != 4) ? measure2.RangeMilliMeter : -1;
+}
+
+void driveforward(int speedR, int speedL) {
+  // Right motor
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+  analogWrite(PWMA, constrain(speedR, 0, 255));
+  // Left motor
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+  analogWrite(PWMB, constrain(speedL, 0, 255));
+}
+
+void sharpleftturn(){
+  int speedR = 150;
+  int speedL = 50;
+  // Right motor
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+  analogWrite(PWMA, constrain(speedR, 0, 255));
+  // Left motor
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
+  analogWrite(PWMB, constrain(speedL, 0, 255));
+}
+
+void leftWallFollow(int error) {
+  unsigned long now = millis();
+  float dt = (now - prevTime) / 1000.0;
+  prevTime = now;
+
+  integralTerm += error * dt;
+  float derivative = (error - prevError) / dt;
+  prevError = error;
+
+  float output = Kp * error + Ki * integralTerm + Kd * derivative;
+
+  int speedR = 150 + output;  // slow right wheel if too close
+  int speedL = 150 - output;  // speed up left wheel if too far
+  Serial.print(constrain(speedR, 0, 255));
+  Serial.print("  ");
+  Serial.print(constrain(speedL, 0, 255));
+  Serial.println("------------");
+ 
+  driveforward(speedR, speedL);
 }
