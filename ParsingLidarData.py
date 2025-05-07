@@ -89,14 +89,12 @@ def parse_data(frame_bytes):
         "start_angle": start_angle,
         "end_angle":   end_angle,
         "timestamp":   timestamp,
-        "points":      points,  # now (distance, strength, angle)
+        "points":      points,  # (distance, strength, angle)
     }
 
 def plotdata(distances, thetas, intensities, axes):
     for a, d, i in zip(thetas, distances, intensities):
         rad = math.radians(a)
-        #pts_x.append(d * math.cos(rad))
-        #pts_y.append(d * math.sin(rad))
         c = axes.scatter(a, d, s=i, alpha=0.75)
     return c
 
@@ -104,7 +102,7 @@ def main():
     ser = serial.Serial(PORT, BAUD, timeout=1)
     print(f"Serial open on {PORT} @ {BAUD} baud")
 
-    plt.ion()  # Turn on interactive mode
+    plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot(projection='polar')
     plt.show()
@@ -131,7 +129,7 @@ def main():
             plotdata(dists, angles, strengths, ax)
 
             plt.draw()
-            plt.pause(0.001)  # <- THIS is what makes the plot window responsive
+            plt.pause(0.001)
 
     except KeyboardInterrupt:
         pass
